@@ -10,14 +10,14 @@ def distancia_euclidiana(coord_a, coord_b):
 
 
 def a_star_search(grafo, coordenadas, inicio, destino):
-    contador = itertools.count()  # desempate para o heap
+    contador = itertools.count()
 
     h_inicio = distancia_euclidiana(coordenadas[inicio], coordenadas[destino])
     lista_aberta = [(h_inicio, next(contador), inicio, 0, None)]
 
-    tabela_hash = {} # nos completamente expandidos
-
+    tabela_hash = {}
     veio_de = {}
+    historico_passos = []  # Armazena os snapshots de cada iteração
 
     while lista_aberta:
         f_atual, _, atual, g_atual, pai = heapq.heappop(lista_aberta)
@@ -25,15 +25,25 @@ def a_star_search(grafo, coordenadas, inicio, destino):
         if atual in tabela_hash:
             continue
 
-        tabela_hash[atual] = g_atual         # fecha o no, registra na tabela hash e guarda o caminho ate ele.
+        tabela_hash[atual] = g_atual
         veio_de[atual] = pai
+
+        # Captura o estado atual da busca
+        abertos = {item[2] for item in lista_aberta if item[2] not in tabela_hash}
+        historico_passos.append({
+            "passo": len(historico_passos) + 1,
+            "atual": atual,
+            "abertos": abertos,
+            "fechados": set(tabela_hash.keys()),
+            "veio_de": dict(veio_de)
+        })
 
         if atual == destino:
             break
 
-        for vizinho, custo_aresta in grafo.get(atual, []):         # processa os sub-nos (vizinhos) do no atual.
+        for vizinho, custo_aresta in grafo.get(atual, []):
             if vizinho in tabela_hash:
-                continue  # ja fechado, ignora
+                continue
 
             novo_custo = g_atual + custo_aresta
             h_vizinho = distancia_euclidiana(coordenadas[vizinho], coordenadas[destino])
@@ -43,7 +53,7 @@ def a_star_search(grafo, coordenadas, inicio, destino):
                 lista_aberta, (f_vizinho, next(contador), vizinho, novo_custo, atual)
             )
 
-    return veio_de, tabela_hash
+    return veio_de, tabela_hash, historico_passos
 
 
 def reconstruir_caminho(veio_de, inicio, destino):
